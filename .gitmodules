@@ -1,0 +1,3 @@
+[submodule "epdp"]
+	path = epdp
+	url = git://github.com/ecell/epdp

@@ -22,12 +22,12 @@ def configure(conf):
     conf.check_cxx(lib='gsl')
 
 def build(bld):
-    bld.shlib(
+    bld.program(
         features = 'cxx cprogram',
         source = cppfiles,
         includes = ['.', '${HOME}/local/include/egfrd_core'],
         defines = ['HAVE_CONFIG_H', 'HAVE_INLINE'],
-        lib = ['gsl', 'gslcblas', 'm', 'hdf5', 'hdf5_cpp'],
+        lib = ['egfrd_core', 'gsl', 'gslcblas', 'm', 'hdf5', 'hdf5_cpp'],
         use = ['BOOST'],
         target = 'mymapk')
     

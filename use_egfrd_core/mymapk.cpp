@@ -6,6 +6,7 @@
 #include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/foreach.hpp>
 
 // epdp headers
 #include <utils/range.hpp>
@@ -16,7 +17,6 @@
 #include <CuboidalRegion.hpp>
 #include <NetworkRules.hpp>
 #include <ReactionRule.hpp>
-#include <CuboidalRegion.hpp>
 #include <EGFRDSimulator.hpp>
 #include <GSLRandomNumberGenerator.hpp>
 
@@ -41,7 +41,9 @@ int main(int argc, char **argv)
     boost::shared_ptr<GSLRandomNumberGenerator> rng(new GSLRandomNumberGenerator());
     rng->seed( (unsigned long int)0 );
 
+    // add ::SpeciesType to ::ParticleModel
     boost::shared_ptr< ::SpeciesType> st(new ::SpeciesType());
+    std::cout << st.get() << std::endl;;
     (*st)["name"] = std::string("A");
     (*st)["D"] = std::string("1e-12");
     (*st)["radius"] = std::string("2.5e-9");

@@ -28,7 +28,6 @@ cppfiles = [
     'epdp/GreensFunction3DRadAbs.cpp',
     'epdp/GreensFunction3DRadInf.cpp',
     'epdp/GreensFunction3DSym.cpp',
-    'epdp/GSLRandomNumberGenerator.cpp',
     'epdp/SphericalBesselGenerator.cpp',
     'epdp/BasicNetworkRulesImpl.cpp',
     'epdp/Model.cpp',

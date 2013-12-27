@@ -1,6 +1,7 @@
 
 // Sakamoto EPDP Sample
 
+#include <egfrd_core/config.h>
 #include <stdexcept>
 #include <vector>
 #include <string>

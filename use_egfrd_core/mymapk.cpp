@@ -31,11 +31,13 @@ int main(int argc, char **argv)
     typedef EGFRDSimulator< ::EGFRDSimulatorTraitsBase<world_type> > simulator_type;
 
     typedef ::CuboidalRegion<simulator_type::traits_type> cuboidal_region_type;
+    typedef world_type::traits_type::structure_id_type structure_id_type;
 
     const Real world_size(1e-6);
     const Integer matrix_size(3);
 
     boost::shared_ptr<world_type> world(new world_type(world_size, matrix_size));
+    world_type::position_type edge_length(world_size, world_size, world_size);
     world_type::position_type pos(world_size / 2, world_size / 2, world_size / 2);
     world->add_structure( boost::shared_ptr<cuboidal_region_type>(
                 new cuboidal_region_type("world", cuboidal_region_type::shape_type(pos, pos))));
@@ -44,10 +46,29 @@ int main(int argc, char **argv)
 
     // add ::SpeciesType to ::ParticleModel
     boost::shared_ptr< ::SpeciesType> st(new ::SpeciesType());
-    std::cout << st.get() << std::endl;;
     (*st)["name"] = std::string("A");
     (*st)["D"] = std::string("1e-12");
     (*st)["radius"] = std::string("2.5e-9");
+
+    //add ::SpeciesInfo to ::World 
+    const std::string &structure_id((*st)["structure"]);
+    std::cout << __LINE__ << std::endl;
+    world->add_species( world_type::traits_type::species_type(
+                st->id(), 
+                boost::lexical_cast<world_type::traits_type::D_type>( (*st)["D"] ),
+                boost::lexical_cast<world_type::length_type>( (*st)["radius"] ),
+                boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id )));
+    std::cout << __LINE__ << std::endl;
+
+    int number_of_particles_A(10);
+    for (int cnt = 0; cnt < number_of_particles_A; cnt++) {
+        // add particles at random.
+        world_type::position_type particle_pos( 
+                rng->uniform(0.0, edge_length[0]), 
+                rng->uniform(0.0, edge_length[1]), 
+                rng->uniform(0.0, edge_length[2]) 
+                );
+    }
 
     return 0;
 }

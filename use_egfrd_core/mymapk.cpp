@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <vector>
 #include <string>
+#include <numeric>
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/foreach.hpp>
@@ -23,6 +24,19 @@
 
 typedef double Real;
 
+typedef ::World< ::CyclicWorldTraits<Real, Real> > world_type;
+
+void throw_in_particles(void)
+{
+
+}
+
+double distance_sq(world_type::position_type p1, world_type::position_type p2)
+{
+    double dsq = 0.0;
+    world_type::position_type sq(gsl_pow_2(p2[0] - p1[0]), gsl_pow_2(p2[1] - p1[1]), gsl_pow_2(p2[2] - p2[2]));
+    return std::accumulate(sq.begin(), sq.end(), 0.0);
+}
 
 int main(int argc, char **argv)
 {
@@ -42,6 +56,7 @@ int main(int argc, char **argv)
     world->add_structure( boost::shared_ptr<cuboidal_region_type>(
                 new cuboidal_region_type("world", cuboidal_region_type::shape_type(pos, pos))));
     boost::shared_ptr<GSLRandomNumberGenerator> rng(new GSLRandomNumberGenerator());
+    particle_model_type model;
     rng->seed( (unsigned long int)0 );
 
     // add ::SpeciesType to ::ParticleModel
@@ -49,16 +64,15 @@ int main(int argc, char **argv)
     (*st)["name"] = std::string("A");
     (*st)["D"] = std::string("1e-12");
     (*st)["radius"] = std::string("2.5e-9");
+    model.add_species_type(st);
 
     //add ::SpeciesInfo to ::World 
     const std::string &structure_id((*st)["structure"]);
-    std::cout << __LINE__ << std::endl;
     world->add_species( world_type::traits_type::species_type(
                 st->id(), 
                 boost::lexical_cast<world_type::traits_type::D_type>( (*st)["D"] ),
                 boost::lexical_cast<world_type::length_type>( (*st)["radius"] ),
                 boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id )));
-    std::cout << __LINE__ << std::endl;
 
     int number_of_particles_A(10);
     for (int cnt = 0; cnt < number_of_particles_A; cnt++) {
@@ -68,6 +82,7 @@ int main(int argc, char **argv)
                 rng->uniform(0.0, edge_length[1]), 
                 rng->uniform(0.0, edge_length[2]) 
                 );
+        world->new_particle(st->id(), particle_pos);
     }
 
     return 0;

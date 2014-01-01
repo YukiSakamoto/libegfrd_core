@@ -44,20 +44,30 @@ public:
     typedef std::vector<std::pair< boost::shared_ptr< ::SpeciesType>, world_type::position_type> >  particle_position_container;
     TemporaryParticleContainer(void) {;}
 
-    /*
+    void add( boost::shared_ptr< ::SpeciesType> st, world_type::position_type pos)
+    {
+        this->container_.push_back( particle_position_container::value_type(st, pos));
+    }
+
     particle_position_container 
     list_particles_within_radius(boost::shared_ptr< ::SpeciesType> st, world_type::position_type &pos)
     {
         particle_position_container ret;
         for(particle_position_container::iterator it = container_.begin(); it != container_.end(); it++) {
+            /*
             if (distance_sq(it->second, pos) < gsl_pow_2(std::atof((*st)["radius"].c_str() ) + std::atof((it->first)["radius"].c_str()))) 
             { 
                 ret.push_back(*it); 
             }
+            */
+            double radius_new( atof(((*st)["radius"]).c_str()) );
+            double radius_st(  atof(((*(it->first))["radius"]).c_str()) );
+            if (distance_sq(it->second, pos) < gsl_pow_2(radius_new) ) {
+                ret.push_back( *it );
+            }
         }
         return ret;
     }
-    */
 
 private:
     particle_position_container container_;
@@ -101,16 +111,19 @@ int main(int argc, char **argv)
                 boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id )));
 
     int number_of_particles_A(10);
+    TemporaryParticleContainer container;
     for (int cnt = 0; cnt < number_of_particles_A; cnt++) {
         // add particles at random.
-        world_type::position_type particle_pos( 
-                rng->uniform(0.0, edge_length[0]), 
-                rng->uniform(0.0, edge_length[1]), 
-                rng->uniform(0.0, edge_length[2]) 
-                );
-        world->new_particle(st->id(), particle_pos);
+        for(;;) {
+            world_type::position_type particle_pos( rng->uniform(0.0, edge_length[0]), rng->uniform(0.0, edge_length[1]), rng->uniform(0.0, edge_length[2]) );
+            if (container.list_particles_within_radius(st, particle_pos).size() == 0) {
+                std::cout << "(" << particle_pos[0] << particle_pos[1] << particle_pos[2] << ")" << std::endl;
+                container.add(st, particle_pos);
+                world->new_particle(st->id(), particle_pos);
+                break;
+            }
+        }
     }
-
 
     return 0;
 }

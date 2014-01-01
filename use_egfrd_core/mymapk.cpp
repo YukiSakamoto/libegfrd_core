@@ -9,6 +9,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/foreach.hpp>
+#include <cstdlib>
 
 // epdp headers
 #include <utils/range.hpp>
@@ -37,6 +38,31 @@ double distance_sq(world_type::position_type p1, world_type::position_type p2)
     world_type::position_type sq(gsl_pow_2(p2[0] - p1[0]), gsl_pow_2(p2[1] - p1[1]), gsl_pow_2(p2[2] - p2[2]));
     return std::accumulate(sq.begin(), sq.end(), 0.0);
 }
+
+class TemporaryParticleContainer {
+public:
+    typedef std::vector<std::pair< boost::shared_ptr< ::SpeciesType>, world_type::position_type> >  particle_position_container;
+    TemporaryParticleContainer(void) {;}
+
+    /*
+    particle_position_container 
+    list_particles_within_radius(boost::shared_ptr< ::SpeciesType> st, world_type::position_type &pos)
+    {
+        particle_position_container ret;
+        for(particle_position_container::iterator it = container_.begin(); it != container_.end(); it++) {
+            if (distance_sq(it->second, pos) < gsl_pow_2(std::atof((*st)["radius"].c_str() ) + std::atof((it->first)["radius"].c_str()))) 
+            { 
+                ret.push_back(*it); 
+            }
+        }
+        return ret;
+    }
+    */
+
+private:
+    particle_position_container container_;
+};
+
 
 int main(int argc, char **argv)
 {
@@ -84,6 +110,7 @@ int main(int argc, char **argv)
                 );
         world->new_particle(st->id(), particle_pos);
     }
+
 
     return 0;
 }

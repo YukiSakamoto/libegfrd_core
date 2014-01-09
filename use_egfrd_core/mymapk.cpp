@@ -85,6 +85,12 @@ int main(int argc, char **argv)
 
     const Real world_size(1e-6);
     const Integer matrix_size(3);
+    const Real volume( world_size * world_size * world_size);
+
+    const Integer N(60);
+    const Real kd(0.1), U(0.5);
+    const Real ka(kd * volume * (1 - U) / (U * U * N));
+    const Real k2(ka), k1(kd);
 
     boost::shared_ptr<world_type> world(new world_type(world_size, matrix_size));
     world_type::position_type edge_length(world_size, world_size, world_size);
@@ -110,7 +116,7 @@ int main(int argc, char **argv)
                 boost::lexical_cast<world_type::length_type>( (*st)["radius"] ),
                 boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id )));
 
-    int number_of_particles_A(10);
+    int number_of_particles_A(N);
     TemporaryParticleContainer container;
     for (int cnt = 0; cnt < number_of_particles_A; cnt++) {
         // add particles at random.

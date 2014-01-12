@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     const Integer matrix_size(3);
     const Real volume( world_size * world_size * world_size);
 
-    const Integer N(60);
+    const Integer N(100);
     const Real kd(0.1), U(0.5);
     const Real ka(kd * volume * (1 - U) / (U * U * N));
     const Real k2(ka), k1(kd);
@@ -102,18 +102,59 @@ int main(int argc, char **argv)
     rng->seed( (unsigned long int)0 );
 
     // add ::SpeciesType to ::ParticleModel
-    boost::shared_ptr< ::SpeciesType> st(new ::SpeciesType());
-    (*st)["name"] = std::string("A");
-    (*st)["D"] = std::string("1e-12");
-    (*st)["radius"] = std::string("2.5e-9");
-    model.add_species_type(st);
+    boost::shared_ptr< ::SpeciesType> st1(new ::SpeciesType());
+    {
+        (*st1)["name"] = std::string("A");
+        (*st1)["D"] = std::string("1e-12");
+        (*st1)["radius"] = std::string("2.5e-9");
+    }
+    model.add_species_type(st1);
+
+    boost::shared_ptr< ::SpeciesType> st2(new ::SpeciesType());
+    {
+        (*st2)["name"] = std::string("A");
+        (*st2)["D"] = std::string("1e-12");
+        (*st2)["radius"] = std::string("2.5e-9");
+    }
+    model.add_species_type(st2);
+
+    boost::shared_ptr< ::SpeciesType> st3(new ::SpeciesType());
+    {
+        (*st3)["name"] = std::string("A");
+        (*st3)["D"] = std::string("1e-12");
+        (*st3)["radius"] = std::string("2.5e-9");
+    }
+    model.add_species_type(st3);
+
+    // A -> B + C   k1
+    std::vector< ::SpeciesTypeID> products;
+    products.push_back(st2->id());
+    products.push_back(st3->id());
+    model.network_rules().add_reaction_rule( new_reaction_rule(st1->id(), products, k1) );
+
+    // B + C -> A   k2
+    products.clear();
+    products.push_back(st1->id());
+    model.network_rules().add_reaction_rule( new_reaction_rule(st2->id(), st3->id(), products, k2) );
+
+    {   // world::set_all_repusive() equality section
+        BOOST_FOREACH( boost::shared_ptr< ::SpeciesType> temp_st1, model.get_species_types()) {
+            BOOST_FOREACH( boost::shared_ptr< ::SpeciesType> temp_st2, model.get_species_types()) {
+                boost::scoped_ptr< ::NetworkRules::reaction_rule_generator> gen( model.network_rules().query_reaction_rule( temp_st1->id(), temp_st2->id()));
+                if (!gen) {
+                    const::std::vector< ::SpeciesTypeID> products;
+                    model.network_rules().add_reaction_rule( ::new_reaction_rule(temp_st1->id()(), temp_st2->id(), products, 0.0) );
+                }
+            }
+        }
+    }
 
     //add ::SpeciesInfo to ::World 
-    const std::string &structure_id((*st)["structure"]);
+    const std::string &structure_id((*st1)["structure"]);
     world->add_species( world_type::traits_type::species_type(
-                st->id(), 
-                boost::lexical_cast<world_type::traits_type::D_type>( (*st)["D"] ),
-                boost::lexical_cast<world_type::length_type>( (*st)["radius"] ),
+                st1->id(), 
+                boost::lexical_cast<world_type::traits_type::D_type>( (*st1)["D"] ),
+                boost::lexical_cast<world_type::length_type>( (*st1)["radius"] ),
                 boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id )));
 
     int number_of_particles_A(N);
@@ -122,10 +163,10 @@ int main(int argc, char **argv)
         // add particles at random.
         for(;;) {
             world_type::position_type particle_pos( rng->uniform(0.0, edge_length[0]), rng->uniform(0.0, edge_length[1]), rng->uniform(0.0, edge_length[2]) );
-            if (container.list_particles_within_radius(st, particle_pos).size() == 0) {
-                std::cout << "(" << particle_pos[0] << particle_pos[1] << particle_pos[2] << ")" << std::endl;
-                container.add(st, particle_pos);
-                world->new_particle(st->id(), particle_pos);
+            if (container.list_particles_within_radius(st1, particle_pos).size() == 0) {
+                //std::cout << "(" << particle_pos[0] << particle_pos[1] << particle_pos[2] << ")" << std::endl;
+                container.add(st1, particle_pos);
+                world->new_particle(st1->id(), particle_pos);
                 break;
             }
         }

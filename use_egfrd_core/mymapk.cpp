@@ -190,6 +190,12 @@ int main(int argc, char **argv)
             }
         }
     }
+
+    ::LoggerManager::register_logger_manager(
+            "ecell.EGFRDSimulator",
+            boost::shared_ptr< ::LoggerManager>(
+                new ::LoggerManager("dummy", ::Logger::L_WARNING)));
+
     boost::shared_ptr< simulator_type> sim( 
             new simulator_type(
                 world, 
@@ -198,6 +204,7 @@ int main(int argc, char **argv)
                 dissociation_retry_moves
                 )
             );
+    sim->initialize();
 
     Integer n_st1, n_st2, n_st3;
     n_st1 = world->get_particle_ids(st1->id()).size();
@@ -209,9 +216,9 @@ int main(int argc, char **argv)
         << n_st3 << "\t"
         << std::endl;
     Real next_time(0.0), dt(0.02);
-    for(int i(0); i < 1; i++) {
+    for(int i(0); i < 100; i++) {
         next_time += dt;
-        while( sim->step(next_time) ){};
+        while(sim->step(next_time)){};
         n_st1 = world->get_particle_ids(st1->id()).size();
         n_st2 = world->get_particle_ids(st2->id()).size();
         n_st3 = world->get_particle_ids(st3->id()).size();

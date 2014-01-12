@@ -79,6 +79,7 @@ int main(int argc, char **argv)
     typedef ::World< ::CyclicWorldTraits<Real, Real> > world_type;
     typedef ::ParticleModel particle_model_type;
     typedef EGFRDSimulator< ::EGFRDSimulatorTraitsBase<world_type> > simulator_type;
+    typedef simulator_type::traits_type::network_rules_type network_rules_type;
 
     typedef ::CuboidalRegion<simulator_type::traits_type> cuboidal_region_type;
     typedef world_type::traits_type::structure_id_type structure_id_type;
@@ -87,10 +88,12 @@ int main(int argc, char **argv)
     const Integer matrix_size(3);
     const Real volume( world_size * world_size * world_size);
 
-    const Integer N(100);
+    const Integer N(60);
     const Real kd(0.1), U(0.5);
     const Real ka(kd * volume * (1 - U) / (U * U * N));
     const Real k2(ka), k1(kd);
+
+    const Integer dissociation_retry_moves(3);
 
     boost::shared_ptr<world_type> world(new world_type(world_size, matrix_size));
     world_type::position_type edge_length(world_size, world_size, world_size);
@@ -100,6 +103,8 @@ int main(int argc, char **argv)
     boost::shared_ptr<GSLRandomNumberGenerator> rng(new GSLRandomNumberGenerator());
     particle_model_type model;
     rng->seed( (unsigned long int)0 );
+
+    world_type::traits_type::rng_type internal_rng = world_type::traits_type::rng_type( rng->rng_ );
 
     // add ::SpeciesType to ::ParticleModel
     boost::shared_ptr< ::SpeciesType> st1(new ::SpeciesType());
@@ -137,17 +142,6 @@ int main(int argc, char **argv)
     products.push_back(st1->id());
     model.network_rules().add_reaction_rule( new_reaction_rule(st2->id(), st3->id(), products, k2) );
 
-    {   // world::set_all_repusive() equality section
-        BOOST_FOREACH( boost::shared_ptr< ::SpeciesType> temp_st1, model.get_species_types()) {
-            BOOST_FOREACH( boost::shared_ptr< ::SpeciesType> temp_st2, model.get_species_types()) {
-                boost::scoped_ptr< ::NetworkRules::reaction_rule_generator> gen( model.network_rules().query_reaction_rule( temp_st1->id(), temp_st2->id()));
-                if (!gen) {
-                    const::std::vector< ::SpeciesTypeID> products;
-                    model.network_rules().add_reaction_rule( ::new_reaction_rule(temp_st1->id()(), temp_st2->id(), products, 0.0) );
-                }
-            }
-        }
-    }
 
     //add ::SpeciesInfo to ::World 
     const std::string &structure_id((*st1)["structure"]);
@@ -156,6 +150,19 @@ int main(int argc, char **argv)
                 boost::lexical_cast<world_type::traits_type::D_type>( (*st1)["D"] ),
                 boost::lexical_cast<world_type::length_type>( (*st1)["radius"] ),
                 boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id )));
+
+    const std::string &structure_id2((*st2)["structure"]);
+    world->add_species( world_type::traits_type::species_type(
+                st2->id(), 
+                boost::lexical_cast<world_type::traits_type::D_type>( (*st2)["D"] ),
+                boost::lexical_cast<world_type::length_type>( (*st2)["radius"] ),
+                boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id2 )));
+    const std::string &structure_id3((*st3)["structure"]);
+    world->add_species( world_type::traits_type::species_type(
+                st3->id(), 
+                boost::lexical_cast<world_type::traits_type::D_type>( (*st3)["D"] ),
+                boost::lexical_cast<world_type::length_type>( (*st3)["radius"] ),
+                boost::lexical_cast<structure_id_type>( structure_id.empty() ? "world" : structure_id3 )));
 
     int number_of_particles_A(N);
     TemporaryParticleContainer container;
@@ -170,6 +177,49 @@ int main(int argc, char **argv)
                 break;
             }
         }
+    }
+
+    {   // world::set_all_repusive() equality section
+        BOOST_FOREACH( boost::shared_ptr< ::SpeciesType> temp_st1, model.get_species_types()) {
+            BOOST_FOREACH( boost::shared_ptr< ::SpeciesType> temp_st2, model.get_species_types()) {
+                boost::scoped_ptr< ::NetworkRules::reaction_rule_generator> gen( model.network_rules().query_reaction_rule( temp_st1->id(), temp_st2->id()));
+                if (!gen) {
+                    const::std::vector< ::SpeciesTypeID> products;
+                    model.network_rules().add_reaction_rule( ::new_reaction_rule(temp_st1->id()(), temp_st2->id(), products, 0.0) );
+                }
+            }
+        }
+    }
+    boost::shared_ptr< simulator_type> sim( 
+            new simulator_type(
+                world, 
+                boost::shared_ptr<network_rules_type>(new network_rules_type(model.network_rules())),
+                internal_rng,
+                dissociation_retry_moves
+                )
+            );
+
+    Integer n_st1, n_st2, n_st3;
+    n_st1 = world->get_particle_ids(st1->id()).size();
+    n_st2 = world->get_particle_ids(st2->id()).size();
+    n_st3 = world->get_particle_ids(st3->id()).size();
+    std::cout << sim->t() << "\t"
+        << n_st1 << "\t"
+        << n_st2 << "\t"
+        << n_st3 << "\t"
+        << std::endl;
+    Real next_time(0.0), dt(0.02);
+    for(int i(0); i < 1; i++) {
+        next_time += dt;
+        while( sim->step(next_time) ){};
+        n_st1 = world->get_particle_ids(st1->id()).size();
+        n_st2 = world->get_particle_ids(st2->id()).size();
+        n_st3 = world->get_particle_ids(st3->id()).size();
+        std::cout << sim->t() << "\t"
+            << n_st1 << "\t"
+            << n_st2 << "\t"
+            << n_st3 << "\t"
+            << std::endl;
     }
 
     return 0;

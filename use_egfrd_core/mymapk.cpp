@@ -27,11 +27,6 @@ typedef double Real;
 
 typedef ::World< ::CyclicWorldTraits<Real, Real> > world_type;
 
-void throw_in_particles(void)
-{
-
-}
-
 double distance_sq(world_type::position_type p1, world_type::position_type p2)
 {
     double dsq = 0.0;
@@ -39,6 +34,7 @@ double distance_sq(world_type::position_type p1, world_type::position_type p2)
     return std::accumulate(sq.begin(), sq.end(), 0.0);
 }
 
+// Class to memize the positions of each particles
 class TemporaryParticleContainer {
 public:
     typedef std::vector<std::pair< boost::shared_ptr< ::SpeciesType>, world_type::position_type> >  particle_position_container;
@@ -54,12 +50,6 @@ public:
     {
         particle_position_container ret;
         for(particle_position_container::iterator it = container_.begin(); it != container_.end(); it++) {
-            /*
-            if (distance_sq(it->second, pos) < gsl_pow_2(std::atof((*st)["radius"].c_str() ) + std::atof((it->first)["radius"].c_str()))) 
-            { 
-                ret.push_back(*it); 
-            }
-            */
             double radius_new( atof(((*st)["radius"]).c_str()) );
             double radius_st(  atof(((*(it->first))["radius"]).c_str()) );
             if (distance_sq(it->second, pos) < gsl_pow_2(radius_new) ) {

@@ -52,11 +52,18 @@ public:
         for(particle_position_container::iterator it = container_.begin(); it != container_.end(); it++) {
             double radius_new( atof(((*st)["radius"]).c_str()) );
             double radius_st(  atof(((*(it->first))["radius"]).c_str()) );
-            if (distance_sq(it->second, pos) < gsl_pow_2(radius_new) ) {
+            if (this->distance(it->second, pos) < (radius_st + radius_new) ) {
                 ret.push_back( *it );
             }
         }
         return ret;
+    }
+
+    double distance(world_type::position_type &p1, world_type::position_type &p2)
+    {
+        double dsq = 0.0;
+        world_type::position_type sq(gsl_pow_2(p2[0] - p1[0]), gsl_pow_2(p2[1] - p1[1]), gsl_pow_2(p2[2] - p2[2]));
+        return sqrt (std::accumulate(sq.begin(), sq.end(), 0.0) );
     }
 
 private:
@@ -69,6 +76,7 @@ int main(int argc, char **argv)
     typedef ::World< ::CyclicWorldTraits<Real, Real> > world_type;
     typedef ::ParticleModel particle_model_type;
     typedef EGFRDSimulator< ::EGFRDSimulatorTraitsBase<world_type> > simulator_type;
+    typedef simulator_type::multi_type multi_type;
     typedef simulator_type::traits_type::network_rules_type network_rules_type;
 
     typedef ::CuboidalRegion<simulator_type::traits_type> cuboidal_region_type;
@@ -93,6 +101,7 @@ int main(int argc, char **argv)
     boost::shared_ptr<GSLRandomNumberGenerator> rng(new GSLRandomNumberGenerator());
     particle_model_type model;
     rng->seed( (unsigned long int)0 );
+    //rng->seed( (unsigned long int)time(NULL) );
 
     world_type::traits_type::rng_type internal_rng = world_type::traits_type::rng_type( rng->rng_ );
 
@@ -107,7 +116,7 @@ int main(int argc, char **argv)
 
     boost::shared_ptr< ::SpeciesType> st2(new ::SpeciesType());
     {
-        (*st2)["name"] = std::string("A");
+        (*st2)["name"] = std::string("B");
         (*st2)["D"] = std::string("1e-12");
         (*st2)["radius"] = std::string("2.5e-9");
     }
@@ -115,7 +124,7 @@ int main(int argc, char **argv)
 
     boost::shared_ptr< ::SpeciesType> st3(new ::SpeciesType());
     {
-        (*st3)["name"] = std::string("A");
+        (*st3)["name"] = std::string("C");
         (*st3)["D"] = std::string("1e-12");
         (*st3)["radius"] = std::string("2.5e-9");
     }
@@ -161,7 +170,7 @@ int main(int argc, char **argv)
         for(;;) {
             world_type::position_type particle_pos( rng->uniform(0.0, edge_length[0]), rng->uniform(0.0, edge_length[1]), rng->uniform(0.0, edge_length[2]) );
             if (container.list_particles_within_radius(st1, particle_pos).size() == 0) {
-                //std::cout << "(" << particle_pos[0] << particle_pos[1] << particle_pos[2] << ")" << std::endl;
+                std::cout << "(" << particle_pos[0] << particle_pos[1] << particle_pos[2] << ")" << std::endl;
                 container.add(st1, particle_pos);
                 world->new_particle(st1->id(), particle_pos);
                 break;
@@ -206,7 +215,8 @@ int main(int argc, char **argv)
         << n_st3 << "\t"
         << std::endl;
     Real next_time(0.0), dt(0.02);
-    for(int i(0); i < 100; i++) {
+    //for(int i(0); i < 100; i++) {
+    for(int i(0); i < 10; i++) {
         next_time += dt;
         while(sim->step(next_time)){};
         n_st1 = world->get_particle_ids(st1->id()).size();
@@ -218,6 +228,24 @@ int main(int argc, char **argv)
             << n_st3 << "\t"
             << std::endl;
     }
+    int num_single_steps_per_type[simulator_type::NUM_SINGLE_EVENT_KINDS];
+    num_single_steps_per_type[simulator_type::SINGLE_EVENT_REACTION] = sim->num_single_steps_per_type( 
+            simulator_type::SINGLE_EVENT_REACTION);
+    num_single_steps_per_type[simulator_type::SINGLE_EVENT_ESCAPE] = sim->num_single_steps_per_type(
+            simulator_type::SINGLE_EVENT_ESCAPE);
+    std::cout << boost::format("%1%: %2% \n") % "SINGLE_EVENT_REACTION" % num_single_steps_per_type[simulator_type::SINGLE_EVENT_REACTION];
+    std::cout << boost::format("%1%: %2% \n") % "SINGLE_EVENT_ESCAPE" % num_single_steps_per_type[simulator_type::SINGLE_EVENT_ESCAPE];
+
+    std::cout << boost::format("%1%: %2% \n") % "PAIR_EVENT_SINGLE_REACTION_0" % sim->num_pair_steps_per_type(simulator_type::PAIR_EVENT_SINGLE_REACTION_0);
+    std::cout << boost::format("%1%: %2% \n") % "PAIR_EVENT_SINGLE_REACTION_1" % sim->num_pair_steps_per_type(simulator_type::PAIR_EVENT_SINGLE_REACTION_1);
+    std::cout << boost::format("%1%: %2% \n") % "PAIR_EVENT_COM_ESCAPE" % sim->num_pair_steps_per_type(simulator_type::PAIR_EVENT_COM_ESCAPE);
+    std::cout << boost::format("%1%: %2% \n") % "PAIR_EVENT_IV_UNDETERMINED" % sim->num_pair_steps_per_type(simulator_type::PAIR_EVENT_IV_UNDETERMINED);
+    std::cout << boost::format("%1%: %2% \n") % "PAIR_EVENT_IV_ESCAPE" % sim->num_pair_steps_per_type(simulator_type::PAIR_EVENT_IV_ESCAPE);
+    std::cout << boost::format("%1%: %2% \n") % "PAIR_EVENT_IV_REACTION" % sim->num_pair_steps_per_type(simulator_type::PAIR_EVENT_IV_REACTION);
+
+    std::cout << boost::format("%1%: %2% \n") % "NONE" % sim->num_multi_steps_per_type(multi_type::NONE);
+    std::cout << boost::format("%1%: %2% \n") % "ESCAPE" % sim->num_multi_steps_per_type(multi_type::ESCAPE);
+    std::cout << boost::format("%1%: %2% \n") % "REACTION" % sim->num_multi_steps_per_type(multi_type::REACTION);
 
     return 0;
 }
